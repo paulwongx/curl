@@ -1433,7 +1433,9 @@ static void ossl_close(struct ssl_connect_data *connssl)
 static void Curl_ossl_close(struct connectdata *conn, int sockindex)
 {
   ossl_close(&conn->ssl[sockindex]);
+#ifndef CURL_DISABLE_PROXY
   ossl_close(&conn->proxy_ssl[sockindex]);
+#endif
 }
 
 /*
@@ -1660,10 +1662,16 @@ static CURLcode verifyhost(struct connectdata *conn, X509 *server_cert)
   CURLcode result = CURLE_OK;
   bool dNSName = FALSE; /* if a dNSName field exists in the cert */
   bool iPAddress = FALSE; /* if a iPAddress field exists in the cert */
-  const char * const hostname = SSL_IS_PROXY() ? conn->http_proxy.host.name :
-    conn->host.name;
+#ifndef CURL_DISABLE_PROXY
+  const char * const hostname = SSL_IS_PROXY() ?
+    conn->http_proxy.host.name : conn->host.name;
   const char * const dispname = SSL_IS_PROXY() ?
     conn->http_proxy.host.dispname : conn->host.dispname;
+#else
+  /* disabled proxy support */
+  const char * const hostname = conn->host.name;
+  const char * const dispname = conn->host.dispname;
+#endif
 
 #ifdef ENABLE_IPV6
   if(conn->bits.ipv6_ip &&
@@ -2542,8 +2550,13 @@ static CURLcode ossl_connect_step1(struct connectdata *conn, int sockindex)
 
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
   bool sni;
+#ifndef CURL_DISABLE_PROXY
   const char * const hostname = SSL_IS_PROXY() ? conn->http_proxy.host.name :
     conn->host.name;
+#else
+  const char * const hostname = conn->host.name;
+#endif
+
 #ifdef ENABLE_IPV6
   struct in6_addr addr;
 #else
@@ -2779,8 +2792,11 @@ static CURLcode ossl_connect_step1(struct connectdata *conn, int sockindex)
     unsigned char protocols[128];
 
 #ifdef USE_NGHTTP2
-    if(data->set.httpversion >= CURL_HTTP_VERSION_2 &&
-       (!SSL_IS_PROXY() || !conn->bits.tunnel_proxy)) {
+    if(data->set.httpversion >= CURL_HTTP_VERSION_2
+#ifndef CURL_DISABLE_PROXY
+       && (!SSL_IS_PROXY() || !conn->bits.tunnel_proxy)
+#endif
+      ) {
       protocols[cur++] = NGHTTP2_PROTO_VERSION_ID_LEN;
 
       memcpy(&protocols[cur], NGHTTP2_PROTO_VERSION_ID,
@@ -3247,6 +3263,7 @@ static CURLcode ossl_connect_step1(struct connectdata *conn, int sockindex)
     Curl_ssl_sessionid_unlock(conn);
   }
 
+#ifndef CURL_DISABLE_PROXY
   if(conn->proxy_ssl[sockindex].use) {
     BIO *const bio = BIO_new(BIO_f_ssl());
     SSL *handle = conn->proxy_ssl[sockindex].backend->handle;
@@ -3256,7 +3273,9 @@ static CURLcode ossl_connect_step1(struct connectdata *conn, int sockindex)
     BIO_set_ssl(bio, handle, FALSE);
     SSL_set_bio(backend->handle, bio, bio);
   }
-  else if(!SSL_set_fd(backend->handle, (int)sockfd)) {
+  else
+#endif
+    if(!SSL_set_fd(backend->handle, (int)sockfd)) {
     /* pass the raw socket into the SSL layers */
     failf(data, "SSL: SSL_set_fd failed: %s",
           ossl_strerror(ERR_get_error(), error_buffer, sizeof(error_buffer)));
@@ -3357,9 +3376,14 @@ static CURLcode ossl_connect_step2(struct connectdata *conn, int sockindex)
        * the SO_ERROR is also lost.
        */
       if(CURLE_SSL_CONNECT_ERROR == result && errdetail == 0) {
+#ifndef CURL_DISABLE_PROXY
         const char * const hostname = SSL_IS_PROXY() ?
           conn->http_proxy.host.name : conn->host.name;
         const long int port = SSL_IS_PROXY() ? conn->port : conn->remote_port;
+#else
+        const char * const hostname = conn->host.name;
+        const long int port = conn->remote_port;
+#endif
         char extramsg[80]="";
         int sockerr = SOCKERRNO;
         if(sockerr && detail == SSL_ERROR_SYSCALL)
@@ -4146,14 +4170,15 @@ static bool Curl_ossl_data_pending(const struct connectdata *conn,
                                    int connindex)
 {
   const struct ssl_connect_data *connssl = &conn->ssl[connindex];
-  const struct ssl_connect_data *proxyssl = &conn->proxy_ssl[connindex];
-
   if(connssl->backend->handle && SSL_pending(connssl->backend->handle))
     return TRUE;
-
-  if(proxyssl->backend->handle && SSL_pending(proxyssl->backend->handle))
-    return TRUE;
-
+#ifndef CURL_DISABLE_PROXY
+  {
+    const struct ssl_connect_data *proxyssl = &conn->proxy_ssl[connindex];
+    if(proxyssl->backend->handle && SSL_pending(proxyssl->backend->handle))
+      return TRUE;
+  }
+#endif
   return FALSE;
 }
 
@@ -4214,8 +4239,11 @@ static ssize_t ossl_send(struct connectdata *conn,
       sslerror = ERR_get_error();
       if(ERR_GET_LIB(sslerror) == ERR_LIB_SSL &&
          ERR_GET_REASON(sslerror) == SSL_R_BIO_NOT_SET &&
-         conn->ssl[sockindex].state == ssl_connection_complete &&
-         conn->proxy_ssl[sockindex].state == ssl_connection_complete) {
+         conn->ssl[sockindex].state == ssl_connection_complete
+#ifndef CURL_DISABLE_PROXY
+         && conn->proxy_ssl[sockindex].state == ssl_connection_complete
+#endif
+        ) {
         char ver[120];
         Curl_ossl_version(ver, 120);
         failf(conn->data, "Error: %s does not support double SSL tunneling.",
