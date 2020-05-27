@@ -501,7 +501,9 @@ CURLcode Curl_init_userdefined(struct Curl_easy *data)
                                                       type */
   set->ssl.primary.sessionid = TRUE; /* session ID caching enabled by
                                         default */
+#ifndef CURL_DISABLE_PROXY
   set->proxy_ssl = set->ssl;
+#endif
 
   set->new_file_perms = 0644;    /* Default permissions */
   set->new_directory_perms = 0755; /* Default permissions */
@@ -3598,54 +3600,58 @@ static CURLcode create_conn(struct Curl_easy *data,
      copies will be separately allocated.
   */
   data->set.ssl.primary.CApath = data->set.str[STRING_SSL_CAPATH_ORIG];
-  data->set.proxy_ssl.primary.CApath = data->set.str[STRING_SSL_CAPATH_PROXY];
   data->set.ssl.primary.CAfile = data->set.str[STRING_SSL_CAFILE_ORIG];
-  data->set.proxy_ssl.primary.CAfile = data->set.str[STRING_SSL_CAFILE_PROXY];
   data->set.ssl.primary.random_file = data->set.str[STRING_SSL_RANDOM_FILE];
-  data->set.proxy_ssl.primary.random_file =
-    data->set.str[STRING_SSL_RANDOM_FILE];
   data->set.ssl.primary.egdsocket = data->set.str[STRING_SSL_EGDSOCKET];
-  data->set.proxy_ssl.primary.egdsocket = data->set.str[STRING_SSL_EGDSOCKET];
   data->set.ssl.primary.cipher_list =
     data->set.str[STRING_SSL_CIPHER_LIST_ORIG];
-  data->set.proxy_ssl.primary.cipher_list =
-    data->set.str[STRING_SSL_CIPHER_LIST_PROXY];
   data->set.ssl.primary.cipher_list13 =
     data->set.str[STRING_SSL_CIPHER13_LIST_ORIG];
-  data->set.proxy_ssl.primary.cipher_list13 =
-    data->set.str[STRING_SSL_CIPHER13_LIST_PROXY];
   data->set.ssl.primary.pinned_key =
     data->set.str[STRING_SSL_PINNEDPUBLICKEY_ORIG];
+
+#ifndef CURL_DISABLE_PROXY
+  data->set.proxy_ssl.primary.CApath = data->set.str[STRING_SSL_CAPATH_PROXY];
+  data->set.proxy_ssl.primary.CAfile = data->set.str[STRING_SSL_CAFILE_PROXY];
+  data->set.proxy_ssl.primary.random_file =
+    data->set.str[STRING_SSL_RANDOM_FILE];
+  data->set.proxy_ssl.primary.egdsocket = data->set.str[STRING_SSL_EGDSOCKET];
+  data->set.proxy_ssl.primary.cipher_list =
+    data->set.str[STRING_SSL_CIPHER_LIST_PROXY];
+  data->set.proxy_ssl.primary.cipher_list13 =
+    data->set.str[STRING_SSL_CIPHER13_LIST_PROXY];
   data->set.proxy_ssl.primary.pinned_key =
     data->set.str[STRING_SSL_PINNEDPUBLICKEY_PROXY];
-
-  data->set.ssl.CRLfile = data->set.str[STRING_SSL_CRLFILE_ORIG];
   data->set.proxy_ssl.CRLfile = data->set.str[STRING_SSL_CRLFILE_PROXY];
-  data->set.ssl.issuercert = data->set.str[STRING_SSL_ISSUERCERT_ORIG];
   data->set.proxy_ssl.issuercert = data->set.str[STRING_SSL_ISSUERCERT_PROXY];
-  data->set.ssl.cert = data->set.str[STRING_CERT_ORIG];
   data->set.proxy_ssl.cert = data->set.str[STRING_CERT_PROXY];
-  data->set.ssl.cert_type = data->set.str[STRING_CERT_TYPE_ORIG];
   data->set.proxy_ssl.cert_type = data->set.str[STRING_CERT_TYPE_PROXY];
-  data->set.ssl.key = data->set.str[STRING_KEY_ORIG];
   data->set.proxy_ssl.key = data->set.str[STRING_KEY_PROXY];
-  data->set.ssl.key_type = data->set.str[STRING_KEY_TYPE_ORIG];
   data->set.proxy_ssl.key_type = data->set.str[STRING_KEY_TYPE_PROXY];
-  data->set.ssl.key_passwd = data->set.str[STRING_KEY_PASSWD_ORIG];
   data->set.proxy_ssl.key_passwd = data->set.str[STRING_KEY_PASSWD_PROXY];
-  data->set.ssl.primary.clientcert = data->set.str[STRING_CERT_ORIG];
   data->set.proxy_ssl.primary.clientcert = data->set.str[STRING_CERT_PROXY];
+  data->set.proxy_ssl.cert_blob = data->set.blobs[BLOB_CERT_PROXY];
+  data->set.proxy_ssl.key_blob = data->set.blobs[BLOB_KEY_PROXY];
+#endif
+  data->set.ssl.CRLfile = data->set.str[STRING_SSL_CRLFILE_ORIG];
+  data->set.ssl.issuercert = data->set.str[STRING_SSL_ISSUERCERT_ORIG];
+  data->set.ssl.cert = data->set.str[STRING_CERT_ORIG];
+  data->set.ssl.cert_type = data->set.str[STRING_CERT_TYPE_ORIG];
+  data->set.ssl.key = data->set.str[STRING_KEY_ORIG];
+  data->set.ssl.key_type = data->set.str[STRING_KEY_TYPE_ORIG];
+  data->set.ssl.key_passwd = data->set.str[STRING_KEY_PASSWD_ORIG];
+  data->set.ssl.primary.clientcert = data->set.str[STRING_CERT_ORIG];
 #ifdef USE_TLS_SRP
   data->set.ssl.username = data->set.str[STRING_TLSAUTH_USERNAME_ORIG];
-  data->set.proxy_ssl.username = data->set.str[STRING_TLSAUTH_USERNAME_PROXY];
   data->set.ssl.password = data->set.str[STRING_TLSAUTH_PASSWORD_ORIG];
+#ifndef CURL_DISABLE_PROXY
+  data->set.proxy_ssl.username = data->set.str[STRING_TLSAUTH_USERNAME_PROXY];
   data->set.proxy_ssl.password = data->set.str[STRING_TLSAUTH_PASSWORD_PROXY];
+#endif
 #endif
 
   data->set.ssl.cert_blob = data->set.blobs[BLOB_CERT_ORIG];
-  data->set.proxy_ssl.cert_blob = data->set.blobs[BLOB_CERT_PROXY];
   data->set.ssl.key_blob = data->set.blobs[BLOB_KEY_ORIG];
-  data->set.proxy_ssl.key_blob = data->set.blobs[BLOB_KEY_PROXY];
   data->set.ssl.issuercert_blob = data->set.blobs[BLOB_SSL_ISSUERCERT_ORIG];
 
   if(!Curl_clone_primary_ssl_config(&data->set.ssl.primary,

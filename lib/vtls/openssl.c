@@ -2563,8 +2563,12 @@ static CURLcode ossl_connect_step1(struct connectdata *conn, int sockindex)
   struct in_addr addr;
 #endif
 #endif
+#ifndef CURL_DISABLE_PROXY
   long * const certverifyresult = SSL_IS_PROXY() ?
     &data->set.proxy_ssl.certverifyresult : &data->set.ssl.certverifyresult;
+#else
+  long * const certverifyresult = &data->set.ssl.certverifyresult;
+#endif
   const long int ssl_version = SSL_CONN_CONFIG(version);
 #ifdef USE_TLS_SRP
   const enum CURL_TLSAUTH ssl_authtype = SSL_SET_OPTION(authtype);
@@ -3292,8 +3296,12 @@ static CURLcode ossl_connect_step2(struct connectdata *conn, int sockindex)
   struct Curl_easy *data = conn->data;
   int err;
   struct ssl_connect_data *connssl = &conn->ssl[sockindex];
+#ifndef CURL_DISABLE_PROXY
   long * const certverifyresult = SSL_IS_PROXY() ?
     &data->set.proxy_ssl.certverifyresult : &data->set.ssl.certverifyresult;
+#else
+  long * const certverifyresult = &data->set.ssl.certverifyresult;
+#endif
   struct ssl_backend_data *backend = connssl->backend;
   DEBUGASSERT(ssl_connect_2 == connssl->connecting_state
               || ssl_connect_2_reading == connssl->connecting_state
@@ -3836,8 +3844,12 @@ static CURLcode servercert(struct connectdata *conn,
   char error_buffer[256]="";
   char buffer[2048];
   const char *ptr;
+#ifndef CURL_DISABLE_PROXY
   long * const certverifyresult = SSL_IS_PROXY() ?
     &data->set.proxy_ssl.certverifyresult : &data->set.ssl.certverifyresult;
+#else
+  long * const certverifyresult = &data->set.ssl.certverifyresult;
+#endif
   BIO *mem = BIO_new(BIO_s_mem());
   struct ssl_backend_data *backend = connssl->backend;
 
