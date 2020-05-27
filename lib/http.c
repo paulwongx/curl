@@ -1716,6 +1716,7 @@ CURLcode Curl_add_custom_headers(struct connectdata *conn,
   }
 #else
   (void)is_connect;
+  h[0] = data->set.headers;
 #endif
 
   /* loop through one or two lists */
