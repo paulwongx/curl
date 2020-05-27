@@ -3698,14 +3698,17 @@ static CURLcode create_conn(struct Curl_easy *data,
     conn = conn_temp;
     *in_connect = conn;
 
+#ifndef CURL_DISABLE_PROXY
     infof(data, "Re-using existing connection! (#%ld) with %s %s\n",
           conn->connection_id,
           conn->bits.proxy?"proxy":"host",
-#ifndef CURL_DISABLE_PROXY
           conn->socks_proxy.host.name ? conn->socks_proxy.host.dispname :
           conn->http_proxy.host.name ? conn->http_proxy.host.dispname :
+          conn->host.dispname);
+#else
+    infof(data, "Re-using existing connection! (#%ld) with host %s\n",
+          conn->connection_id, conn->host.dispname);
 #endif
-                                       conn->host.dispname);
   }
   else {
     /* We have decided that we want a new connection. However, we may not
