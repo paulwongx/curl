@@ -829,9 +829,6 @@ struct Curl_easy *curl_easy_duphandle(struct Curl_easy *data)
    * the likeliness of us forgetting to init a buffer here in the future.
    */
   outcurl->set.buffer_size = data->set.buffer_size;
-  outcurl->state.buffer = malloc(outcurl->set.buffer_size + 1);
-  if(!outcurl->state.buffer)
-    goto fail;
 
   /* copy all userdefined values */
   if(dupset(outcurl, data))

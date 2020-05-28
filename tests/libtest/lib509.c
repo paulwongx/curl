@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -38,66 +38,43 @@
 #include "memdebug.h"
 */
 
-static int seen_malloc = 0;
-static int seen_free = 0;
-static int seen_realloc = 0;
-static int seen_strdup = 0;
-static int seen_calloc = 0;
+enum seenthem {
+  SEEN_MALLOC,
+  SEEN_CALLOC,
+  SEEN_FREE,
+  SEEN_REALLOC,
+  SEEN_STRDUP
+};
 
-void *custom_malloc(size_t size);
-void custom_free(void *ptr);
-void *custom_realloc(void *ptr, size_t size);
-char *custom_strdup(const char *ptr);
-void *custom_calloc(size_t nmemb, size_t size);
+static int seen[5];
 
-
-void *custom_calloc(size_t nmemb, size_t size)
+static void *custom_calloc(size_t nmemb, size_t size)
 {
-  if(!seen_calloc) {
-    printf("seen custom_calloc()\n");
-    seen_calloc = 1;
-  }
+  seen[SEEN_CALLOC] = 1;
   return (calloc)(nmemb, size);
 }
 
-void *custom_malloc(size_t size)
+static void *custom_malloc(size_t size)
 {
-  if(!seen_malloc && seen_calloc) {
-    printf("seen custom_malloc()\n");
-    seen_malloc = 1;
-  }
+  seen[SEEN_MALLOC] = 1;
   return (malloc)(size);
 }
 
-char *custom_strdup(const char *ptr)
+static char *custom_strdup(const char *ptr)
 {
-  if(!seen_strdup && seen_malloc) {
-    /* currently (2013.03.13), memory tracking enabled builds do not call
-       the strdup callback, in this case malloc callback and memcpy are used
-       instead. If some day this is changed the following printf() should be
-       uncommented, and a line added to test definition.
-    printf("seen custom_strdup()\n");
-    */
-    seen_strdup = 1;
-  }
+  seen[SEEN_STRDUP] = 1;
   return (strdup)(ptr);
 }
 
-void *custom_realloc(void *ptr, size_t size)
+static void *custom_realloc(void *ptr, size_t size)
 {
-  if(!seen_realloc && seen_malloc) {
-    printf("seen custom_realloc()\n");
-    seen_realloc = 1;
-  }
+  seen[SEEN_REALLOC] = 1;
   return (realloc)(ptr, size);
 }
 
-void custom_free(void *ptr)
+static void custom_free(void *ptr)
 {
-  if(!seen_free && seen_realloc) {
-    printf("seen custom_free()\n");
-    seen_free = 1;
-  }
+  seen[SEEN_FREE] = 1;
   (free)(ptr);
 }
 
@@ -110,7 +87,7 @@ int test(char *URL)
   CURL *curl;
   int asize;
   char *str = NULL;
-
+  int i;
   (void)URL;
 
   res = curl_global_init_mem(CURL_GLOBAL_ALL,
@@ -136,10 +113,16 @@ int test(char *URL)
   asize = (int)sizeof(a);
   str = curl_easy_escape(curl, (char *)a, asize); /* uses realloc() */
 
+  /* skip the malloc one as it might not be used */
+  for(i = SEEN_MALLOC + 1; i < 5; i++ )
+    printf("saw type %i: %s\n", i, seen[i] ? "YES" : "no");
+
 test_cleanup:
 
   if(str)
     curl_free(str);
+  else
+    return 22;
 
   curl_easy_cleanup(curl);
   curl_global_cleanup();
