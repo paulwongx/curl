@@ -969,18 +969,6 @@ void curl_easy_reset(struct Curl_easy *data)
 #if !defined(CURL_DISABLE_HTTP) && !defined(CURL_DISABLE_CRYPTO_AUTH)
   Curl_http_auth_cleanup_digest(data);
 #endif
-
-  /* resize receive buffer */
-  if(old_buffer_size != data->set.buffer_size) {
-    char *newbuff = realloc(data->state.buffer, data->set.buffer_size + 1);
-    if(!newbuff) {
-      DEBUGF(fprintf(stderr, "Error: realloc of buffer failed\n"));
-      /* nothing we can do here except use the old size */
-      data->set.buffer_size = old_buffer_size;
-    }
-    else
-      data->state.buffer = newbuff;
-  }
 }
 
 /*
