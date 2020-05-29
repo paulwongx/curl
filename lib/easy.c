@@ -944,8 +944,6 @@ struct Curl_easy *curl_easy_duphandle(struct Curl_easy *data)
  */
 void curl_easy_reset(struct Curl_easy *data)
 {
-  long old_buffer_size = data->set.buffer_size;
-
   Curl_free_request_state(data);
 
   /* zero out UserDefined data: */
