@@ -34,10 +34,7 @@ nothing
 # Verify data after the test has been "shot"
 <verify>
 <stdout>
-saw type 1: YES
-saw type 2: YES
-saw type 3: YES
-saw type 4: YES
+Callbacks were invoked!
 </stdout>
 </verify>
 

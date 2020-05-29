@@ -34,47 +34,35 @@
  * memory callbacks which should be calling 'the real thing'.
  */
 
-/*
-#include "memdebug.h"
-*/
-
-enum seenthem {
-  SEEN_MALLOC,
-  SEEN_CALLOC,
-  SEEN_FREE,
-  SEEN_REALLOC,
-  SEEN_STRDUP
-};
-
-static int seen[5];
+static int seen;
 
 static void *custom_calloc(size_t nmemb, size_t size)
 {
-  seen[SEEN_CALLOC] = 1;
+  seen++;
   return (calloc)(nmemb, size);
 }
 
 static void *custom_malloc(size_t size)
 {
-  seen[SEEN_MALLOC] = 1;
+  seen++;
   return (malloc)(size);
 }
 
 static char *custom_strdup(const char *ptr)
 {
-  seen[SEEN_STRDUP] = 1;
+  seen++;
   return (strdup)(ptr);
 }
 
 static void *custom_realloc(void *ptr, size_t size)
 {
-  seen[SEEN_REALLOC] = 1;
+  seen++;
   return (realloc)(ptr, size);
 }
 
 static void custom_free(void *ptr)
 {
-  seen[SEEN_FREE] = 1;
+  seen++;
   (free)(ptr);
 }
 
@@ -87,7 +75,6 @@ int test(char *URL)
   CURL *curl;
   int asize;
   char *str = NULL;
-  int i;
   (void)URL;
 
   res = curl_global_init_mem(CURL_GLOBAL_ALL,
@@ -113,9 +100,8 @@ int test(char *URL)
   asize = (int)sizeof(a);
   str = curl_easy_escape(curl, (char *)a, asize); /* uses realloc() */
 
-  /* skip the malloc one as it might not be used */
-  for(i = SEEN_MALLOC + 1; i < 5; i++)
-    printf("saw type %i: %s\n", i, seen[i] ? "YES" : "no");
+  if(seen)
+    printf("Callbacks were invoked!\n");
 
 test_cleanup:
 
