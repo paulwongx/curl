@@ -622,7 +622,7 @@ static CURLcode readwrite_data(struct Curl_easy *data,
     is_empty_data = ((nread == 0) && (k->bodywrites == 0)) ? TRUE : FALSE;
 
     if(0 < nread || is_empty_data) {
-      ;
+      buf[nread] = 0;
     }
     else {
       /* if we receive 0 or less here, either the http2 stream is closed or the

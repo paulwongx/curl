@@ -1530,7 +1530,7 @@ static CURLcode protocol_connect(struct connectdata *conn,
 static CURLcode preconnect(struct Curl_easy *data)
 {
   if(!data->state.buffer) {
-    data->state.buffer = malloc(data->set.buffer_size);
+    data->state.buffer = malloc(data->set.buffer_size + 1);
     if(!data->state.buffer)
       return CURLE_OUT_OF_MEMORY;
   }
