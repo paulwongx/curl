@@ -114,7 +114,7 @@ int test(char *URL)
   str = curl_easy_escape(curl, (char *)a, asize); /* uses realloc() */
 
   /* skip the malloc one as it might not be used */
-  for(i = SEEN_MALLOC + 1; i < 5; i++ )
+  for(i = SEEN_MALLOC + 1; i < 5; i++)
     printf("saw type %i: %s\n", i, seen[i] ? "YES" : "no");
 
 test_cleanup:
