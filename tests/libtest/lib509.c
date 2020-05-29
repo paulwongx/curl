@@ -121,8 +121,6 @@ test_cleanup:
 
   if(str)
     curl_free(str);
-  else
-    return 22;
 
   curl_easy_cleanup(curl);
   curl_global_cleanup();
